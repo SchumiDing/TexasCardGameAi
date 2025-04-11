@@ -179,29 +179,7 @@ class play:
         
         return ifallFold
     
-    def trainOneRound(self):
-        # one round of poker
-        self.trainPlayerMakeDecision()
-        self.round += 1
-        if self.round == 2:
-            # deal the flop
-            self.tableCard[0] = self.gain_card()
-            self.tableCard[1] = self.gain_card()
-            self.tableCard[2] = self.gain_card()
-        elif self.round == 3:
-            # deal the turn
-            self.cutCard()
-            self.tableCard[3] = self.gain_card()    
-        elif self.round == 4:
-            # deal the river
-            self.cutCard()
-            self.tableCard[4] = self.gain_card()
-        ifallFold = True
-        for player in self.player:
-            if player.action[0] != 0:
-                ifallFold = False
-        
-        return ifallFold
+
     
     def compareHandCard(self, handCard1, handCard2, tableCard):
         """

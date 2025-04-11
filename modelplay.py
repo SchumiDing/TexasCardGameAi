@@ -1,7 +1,7 @@
 from neural import *
 from model import play
 
-def modelPlay(play):
+class modelPlay(play):
     def print(self):
         print(f"pot: {self.pot}")
         print(f"Round: {self.round}")
@@ -56,15 +56,21 @@ def modelPlay(play):
         while True:
             for player in self.player:
                 player.action = [None, None, None]
-            ifallFold = self.trainOneRound()
+            ifallFold = self.oneRound()
+
+            self.print()
             if ifallFold:
                 break
-            self.print()
+            if self.round == 4:
+                break
+            
 
 if __name__ == "__main__":
     play = modelPlay("cpu")
     num = 6
+    version = "0.0"
     for i in range(num):
         play.add_player("cpu")
-        play.player[-1].qnn.load_state_dict(torch.load(f"players/model_{p.player[-1].playerNum}.pth"))
+        play.player[-1].qnn = torch.load(f"v{version}/model_{play.player[-1].playerNum}.pth")
+        # play.player[-1].qnn.load_state_dict(torch.load(f"v{version}/model_{play.player[-1].playerNum}.pth"))
     play.oneGame()

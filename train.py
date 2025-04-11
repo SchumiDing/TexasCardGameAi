@@ -57,8 +57,8 @@ class train(play):
             if ifallFold:
                 break
             
-            self.print()
-            a = 0
+            # self.print()
+            # a = 0
             if self.round == 4:
                 break
         self.calculate_reward()
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     for i in range(6):
         p.add_player("cpu")
         # p.player[-1].qnn.load_state_dict(torch.load(f"players/maxmodel.pth")[0])
-        p.player[-1].qnn.load_state_dict(torch.load(f"players/model_{p.player[-1].playerNum}.pth"))
+        # p.player[-1].qnn.load_state_dict(torch.load(f"players/model_{p.player[-1].playerNum}.pth"))
         # torch.save(p.player[-1].qnn.state_dict(), f"players/model_{p.player[-1].playerNum}_v0.0.pth")
         # torch.save(p.player[-1].qnn, f"v0.0/model_{p.player[-1].playerNum}.pth")
     p.playGame(100000000)

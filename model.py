@@ -99,7 +99,6 @@ class play:
             if action[0] == 0:
                 # fold
                 player.foldCard = [player.handCard[0], player.handCard[1]]
-    
                 # print(f"fold : {player.handCard[0].value} {player.handCard[0].suit}, {player.handCard[1].value} {player.handCard[1].suit}")
                 player.handCard = [None, None]
             elif action[0] == 1:
@@ -151,6 +150,7 @@ class play:
                 player.bet += bet
                 player.vpip += 1
                 self.prebet = bet
+                self.ifCall = True
                 # player.folds += 1
     
         return

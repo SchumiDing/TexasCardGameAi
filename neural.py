@@ -188,6 +188,7 @@ class TexasPocker:
         self.pfr = 0
         self.threeBet = 0
         self.folds = 0
+        self.ifCall = False
     
     def init_network(self):
         self.qnn.hiddenState = [torch.zeros(1, self.qnn.hidden_size).to(self.qnn.device)]

@@ -18,11 +18,11 @@ class qnn(torch.nn.Module):
         self.card_decision = torch.nn.Sequential(
                 torch.nn.Linear(card_input+otherDecision, card_input//2),
                 torch.nn.ReLU(),
-                torch.nn.Linear(card_input//2, card_input//4),
+                torch.nn.Linear(card_input//2, card_input//2),
                 torch.nn.ReLU(),
-                torch.nn.Linear(card_input//4, card_input//8),
+                torch.nn.Linear(card_input//2, card_input//2),
                 torch.nn.ReLU(),
-                torch.nn.Linear(card_input//8, card_sol),
+                torch.nn.Linear(card_input//2, card_sol),
         )
         # self.card_threw = torch.nn.Sequential(
         #         torch.nn.Linear(input_dim, input_dim//2),
@@ -103,7 +103,8 @@ class qnn(torch.nn.Module):
     
     def LSTMst(self, sta, card, actions):
         
-        cD = self.card_decision(torch.concat((card.T, actions.T), dim=1))
+        xxx = torch.concat((card.T, actions.T), dim=1)
+        cD = self.card_decision(xxx)
 
         # x = torch.cat((sta, cD, self.hiddenState[-1]), dim=1)
         x = torch.cat((self.hiddenState[-1], cD), dim=1)
@@ -119,8 +120,8 @@ class qnn(torch.nn.Module):
         self.cellState[-1] = self.forget1(forget_gate) * self.cellState[-2] + self.forget2(input_gate) * torch.tanh(self.cellState[-2])
         self.hiddenState[-1] = self.forget1(output_gate) * self.hiddenState[-2] + self.forget2(input_gate) * torch.tanh(self.cellState[-1])
         
-        
-        out1 = self.fc1(torch.cat((self.hiddenState[-1][0],cD[0])))
+        out = torch.cat((self.hiddenState[-1][0],cD[0]))
+        out1 = self.fc1(out)
         # out2 = self.card_threw(torch.cat((sta, out1), dim=1))
         return out1, None
     

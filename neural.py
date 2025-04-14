@@ -4,7 +4,7 @@ import numpy as np
 
 class qnn(torch.nn.Module):
     
-    def __init__(self, input_dim=18, betinput=16, output_dim=3, bet_dim=5, card_input=119,otherDecision=100, card_sol = 3, device='cpu'):
+    def __init__(self, input_dim=18, betinput=16, output_dim=3, bet_dim=5, card_input=7,otherDecision=6, card_sol = 3, device='cpu'):
         '''
         input_dim: [1otherstastic(3*1),1otherstastic(3*1),1otherstastic(3*1),1otherstastic(3*1), 1otherstastic(3*1), card_sol]
         card_sol: w_i * 3, 1 <= w_i <= 13, if no card 0
@@ -31,6 +31,20 @@ class qnn(torch.nn.Module):
         #         torch.nn.ReLU(),
         #         torch.nn.Linear(input_dim//4, 2),
         # )
+        self.cardTrans = torch.nn.Sequential(
+            torch.nn.Linear(17, 17),
+            torch.nn.ReLU(),
+            torch.nn.Linear(17, 8),
+            torch.nn.ReLU(),
+            torch.nn.Linear(8, 1),
+        )
+        self.actionTrans = torch.nn.Sequential(
+            torch.nn.Linear(11, 11),
+            torch.nn.ReLU(),
+            torch.nn.Linear(11, 5),
+            torch.nn.ReLU(),
+            torch.nn.Linear(5, 1),
+        )
 
         self.fc = torch.nn.Sequential(
                 torch.nn.Linear(input_dim-output_dim+bet_dim, (input_dim + output_dim) // 2),
@@ -87,12 +101,9 @@ class qnn(torch.nn.Module):
         self.optimizer = torch.optim.Adam(self.parameters(), lr=1)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
     
-    def LSTMst(self, sta, card):
-        # x: [batch_size, input_dim]
-        # hiddenState: [batch_size, hidden_size]
-        # cellState: [batch_size, cell_size]
-        cD = self.card_decision(card)
-
+    def LSTMst(self, sta, card, actions):
+        
+        cD = self.card_decision(torch.concat((card.T, actions.T), dim=1))
 
         # x = torch.cat((sta, cD, self.hiddenState[-1]), dim=1)
         x = torch.cat((self.hiddenState[-1], cD), dim=1)
@@ -106,7 +117,7 @@ class qnn(torch.nn.Module):
         
         # update cell state
         self.cellState[-1] = self.forget1(forget_gate) * self.cellState[-2] + self.forget2(input_gate) * torch.tanh(self.cellState[-2])
-        self.hiddenState[-1] = output_gate * torch.tanh(self.cellState[-1])
+        self.hiddenState[-1] = self.forget1(output_gate) * self.hiddenState[-2] + self.forget2(input_gate) * torch.tanh(self.cellState[-1])
         
         
         out1 = self.fc1(torch.cat((self.hiddenState[-1][0],cD[0])))
@@ -117,19 +128,20 @@ class qnn(torch.nn.Module):
                 
         
 
-    def forward(self, x, card):
-        # x: [batch_size, input_dim]
-        x1, x3 = self.LSTMst(x, card)
-        cB = self.fcC(card)
+    def forward(self, x, card, actions):
+        card = self.cardTrans(card)
+        actions = self.actionTrans(actions)
+        
+        x1, x3 = self.LSTMst(x, card, actions)
+        cB = self.fcC(torch.concat((card.T, actions.T), dim=1))
         inp = torch.cat((x, cB), dim=1).view(-1, 20).to(self.device)
         x2 = self.fc(inp)
         return x1, x2, x3
     
-    def choose_action(self, x, card):
-        # x: [batch_size, input_dim]
+    def choose_action(self, x, card, actions):
         # 0: fold, 1: check, 2: call
         
-        x1, x2, x3 = self.forward(x, card)
+        x1, x2, x3 = self.forward(x, card, actions)
         action = [0, 0, 0]
         memory = [0, 0, 0]
         action[0] = torch.argmax(x1)
@@ -143,11 +155,11 @@ class qnn(torch.nn.Module):
 
         return action, memory
     
-    def train_choose_action(self, x, card):
+    def train_choose_action(self, x, card, actions):
         # x: [batch_size, input_dim]
         # 0: fold, 1: check, 2: call
         
-        x1, x2, x3 = self.forward(x, card)
+        x1, x2, x3 = self.forward(x, card, actions)
         action = [0, 0, 0]
         memory = [0, 0, 0]
         action[0] = np.random.choice([0, 1, 2])

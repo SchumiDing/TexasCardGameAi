@@ -55,30 +55,33 @@ class play:
         for p in self.player:
             if p != player:
                 players.append(p)
-        card = torch.zeros(1, 119+100).to(self.device)
+        card = torch.zeros((7,17)).to(self.device)
         for i in range(5):
             if tableCard[i] == None:
                 continue
             if tableCard[i].value != 0:
-                card[0][i*17 + tableCard[i].value] = 1
-                card[0][i*17 + 13+ tableCard[i].suit] = 1
+                # card[0][i*17 + tableCard[i].value] = 1
+                # card[0][i*17 + 13+ tableCard[i].suit] = 1
+                card[i][tableCard[i].value-1] = 1
+                card[i][13+ tableCard[i].suit-1] = 1
         for i in range(2):
             if handCard[i].value != 0:
-                card[0][i*17 + handCard[i].value] = 1
-                card[0][i*17 + 13+ handCard[i].suit] = 1
-        for i in range(5):
+                # card[0][85+i*17 + handCard[i].value] = 1
+                # card[0][85+i*17 + 13+ handCard[i].suit] = 1
+                card[i+5][handCard[i].value-1] = 1
+                card[i+5][13+ handCard[i].suit-1] = 1
+        actions = torch.zeros((6,11)).to(self.device)
+        for i,p in enumerate(players):
             if p.action[0] != None:
-                card[0][i*20 + p.action[0]] = 1
+                actions[i][p.action[0]] = 1
                 if p.action[0] == 2:
-                    card[0][i*20 + 3 + p.action[1]] = 1
-                if p.action[0] == 0:
-                    card[0][i*20 + 8 + p.action[2]] = 1
+                    actions[i][p.action[1]+3] = 1
         player_state = torch.zeros(1, 15).to(self.device)
         for i,p in enumerate(players):
             player_state[0][i*3] = p.vpip/p.folds if p.folds != 0 else 0
             player_state[0][i*3 + 1] = p.pfr/p.folds if p.folds != 0 else 0
             player_state[0][i*3 + 2] = p.threeBet/p.folds if p.folds != 0 else 0
-        return player_state, card
+        return player_state, card, actions
     
     def gain_card(self):
         return self.card.pop()
@@ -92,8 +95,8 @@ class play:
         for player in self.player:
             if player.handCard[0] == None:
                 continue
-            sta, card = self.create_input(player.handCard, self.tableCard, player)
-            action, memory = player.qnn.choose_action(sta, card)
+            sta, card, actions = self.create_input(player.handCard, self.tableCard, player)
+            action, memory = player.qnn.choose_action(sta, card, actions)
             player.action = action
             player.history.append((action, memory))
             if action[0] == 0:
@@ -121,8 +124,8 @@ class play:
         for player in self.player:
             if player.handCard[0] == None:
                 continue
-            sta, card = self.create_input(player.handCard, self.tableCard, player)
-            action, memory = player.qnn.train_choose_action(sta, card)
+            sta, card, actions = self.create_input(player.handCard, self.tableCard, player)
+            action, memory = player.qnn.train_choose_action(sta, card, actions)
             player.action = action
             player.history.append((action, memory))
             if action[0] == 0:

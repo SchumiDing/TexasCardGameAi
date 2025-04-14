@@ -4,7 +4,7 @@ from model import play
 class train(play):
     def trainOneRound(self):
         # one round of poker
-        self.trainPlayerMakeDecision()
+        
         self.round += 1
         if self.round == 2:
             # deal the flop
@@ -19,6 +19,7 @@ class train(play):
             # deal the river
             self.cutCard()
             self.tableCard[4] = self.gain_card()
+        self.trainPlayerMakeDecision()
         ifallFold = True
         for player in self.player:
             if player.action[0] != 0:

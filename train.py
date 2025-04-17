@@ -2,7 +2,7 @@ from neural import *
 from model import play
 
 class train(play):
-    def trainOneRound(self):
+    def trainOneRound(self, sigma=0.1):
         # one round of poker
         
         self.round += 1
@@ -19,14 +19,17 @@ class train(play):
             # deal the river
             self.cutCard()
             self.tableCard[4] = self.gain_card()
-        self.trainPlayerMakeDecision()
+        if random.random() > sigma:  
+            self.trainPlayerMakeDecision()
+        else:
+            self.playerMakeDecision()
         ifallFold = True
         for player in self.player:
             if player.action[0] != 0:
                 ifallFold = False
         
         return ifallFold
-    def oneGame(self):
+    def oneGame(self, sigma=0.1):
         # one game of poker
         # print("=="*10)
         self.createcardList()
@@ -54,7 +57,7 @@ class train(play):
         while True:
             for player in self.player:
                 player.action = [None, None, None]
-            ifallFold = self.trainOneRound()
+            ifallFold = self.trainOneRound(sigma)
             if ifallFold:
                 break
             
@@ -64,19 +67,20 @@ class train(play):
                 break
         self.calculate_reward()
         return
-    def playGame(self, num):
+    def playGame(self, num, sigma=0.1):
         for i in range(num):
             # print("Game: ", i)
             premoney = []
             for player in self.player:
                 player.money = 100
                 premoney.append(player.money)
+                player.qnn.init_network()
             # random.shuffle(self.player)
             firstp = self.player[0]
             for k in range(len(self.player)-1):
                 self.player[k] = self.player[k+1]
             self.player[-1] = firstp
-            self.oneGame()
+            self.oneGame(i/num)
             for k, player in enumerate(self.player):
                 objv = torch.tensor(player.money - premoney[k]).float().to(self.device)
                 # preParam = []
@@ -91,7 +95,8 @@ class train(play):
                     if player.history[j][0][0] == 2:
                         reward = self.monteCaloReward(objv, j+1 , player.history[j][1][1].item(), len(player.history))
                         loss += player.qnn.criteration(player.history[j][1][1].float(), reward)
-                    
+                # for h in player.qnn.hiddenState:
+                #     loss -= (h[0]**2).sum()
                 loss.backward()
                 # for param in player.qnn.parameters():
                 #     print(param.grad)
@@ -147,6 +152,5 @@ if __name__ == '__main__':
         p.add_player("cpu")
         # p.player[-1].qnn.load_state_dict(torch.load(f"players/maxmodel.pth")[0])
         # p.player[-1].qnn.load_state_dict(torch.load(f"players/model_{p.player[-1].playerNum}.pth"))
-        # torch.save(p.player[-1].qnn.state_dict(), f"players/model_{p.player[-1].playerNum}_v0.0.pth")
-        # torch.save(p.player[-1].qnn, f"v0.0/model_{p.player[-1].playerNum}.pth")
-    p.playGame(100000000)
+        # torch.save(p.player[-1].qnn, f"v0.1/model_{p.player[-1].playerNum}.pth")
+    p.playGame(10200)

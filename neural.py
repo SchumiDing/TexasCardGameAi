@@ -78,47 +78,59 @@ class qnn(torch.nn.Module):
         self.hiddenState = [torch.zeros(1, self.hidden_size)]
         self.cellState = [torch.zeros(1, self.cell_size)]
         self.input_layer = torch.nn.Sequential(
-                torch.nn.Linear(self.hidden_size+output_dim, self.input_dim*2),
+                torch.nn.Linear(self.hidden_size*2, self.input_dim*2),
                 torch.nn.ReLU(),
                 torch.nn.Linear(input_dim*2, self.hidden_size),
                 torch.nn.Sigmoid()
         )
         self.forget_layer = torch.nn.Sequential(
-                torch.nn.Linear(self.hidden_size+output_dim, self.input_dim*2),
+                torch.nn.Linear(self.hidden_size*2, self.input_dim*2),
                 torch.nn.ReLU(),
                 torch.nn.Linear(input_dim*2, self.hidden_size),
         )
-        self.forget1 = torch.nn.Sigmoid()
-        self.forget2 = torch.nn.Tanh()
         self.output_layer = torch.nn.Sequential(
-                torch.nn.Linear(self.hidden_size+output_dim, self.input_dim),
+                torch.nn.Linear(self.hidden_size*2, self.input_dim),
                 torch.nn.ReLU(),
                 torch.nn.Linear(input_dim, self.hidden_size),
                 torch.nn.Sigmoid()
         )
-        
+        self.hiddenCell = torch.nn.Sequential(
+                torch.nn.Linear(output_dim, self.input_dim),
+                torch.nn.ReLU(),
+                torch.nn.Linear(input_dim, self.hidden_size),
+        )
+        self.xxxs = []
+        self.xcDs = []
+        self.xcards = []
+        self.xactions = []
         self.criteration = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=1)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
-    
+
+        
+        
     def LSTMst(self, sta, card, actions):
         
         xxx = torch.concat((card.T, actions.T), dim=1)
+        self.xxxs.append(xxx.clone())
         cD = self.card_decision(xxx)
+        self.xcDs.append(cD.clone())
+        
+        cdH = self.hiddenCell(cD)
 
         # x = torch.cat((sta, cD, self.hiddenState[-1]), dim=1)
-        x = torch.cat((self.hiddenState[-1], cD), dim=1)
+        x = torch.cat((self.hiddenState[-1], cdH), dim=1)
         
         input_gate = self.input_layer(x)
         forget_gate = self.forget_layer(x)
         output_gate = self.output_layer(x)
 
-        self.cellState.append(self.cellState[-1].clone().detach().requires_grad_(True).to(self.device))
-        self.hiddenState.append(self.hiddenState[-1].clone().detach().requires_grad_(True).to(self.device))
+        self.hiddenState.append(torch.zeros(1, self.hidden_size).to(self.device).detach())
+        self.cellState.append(torch.zeros(1, self.cell_size).to(self.device).detach())
         
-        # update cell state
-        self.cellState[-1] = self.forget1(forget_gate) * self.cellState[-2] + self.forget2(input_gate) * torch.tanh(self.cellState[-2])
-        self.hiddenState[-1] = self.forget1(output_gate) * self.hiddenState[-2] + self.forget2(input_gate) * torch.tanh(self.cellState[-1])
+        
+        self.cellState[-1] = forget_gate * self.cellState[-1] + input_gate * cdH
+        self.hiddenState[-1] = output_gate * torch.tanh(self.cellState[-1])
         
         out = torch.cat((self.hiddenState[-1][0],cD[0]))
         out1 = self.fc1(out)
@@ -130,9 +142,10 @@ class qnn(torch.nn.Module):
         
 
     def forward(self, x, card, actions):
+        self.xcards.append(card)
+        self.xactions.append(actions)
         card = self.cardTrans(card)
         actions = self.actionTrans(actions)
-        
         x1, x3 = self.LSTMst(x, card, actions)
         cB = self.fcC(torch.concat((card.T, actions.T), dim=1))
         inp = torch.cat((x, cB), dim=1).view(-1, 20).to(self.device)
@@ -174,6 +187,14 @@ class qnn(torch.nn.Module):
 
         return action, memory
     
+    def init_network(self):
+        self.hiddenState = [torch.zeros(1, self.hidden_size).to(self.device)]
+        self.cellState = [torch.zeros(1, self.cell_size).to(self.device)]
+        self.xxxs = []
+        self.xcDs = []
+        self.xcards = []
+        self.xactions = []
+        return
 
 
 class Card:
@@ -206,3 +227,5 @@ class TexasPocker:
     def init_network(self):
         self.qnn.hiddenState = [torch.zeros(1, self.qnn.hidden_size).to(self.qnn.device)]
         self.qnn.cellState = [torch.zeros(1, self.qnn.cell_size).to(self.qnn.device)]
+
+

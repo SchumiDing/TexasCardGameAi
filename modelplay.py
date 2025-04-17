@@ -68,9 +68,12 @@ class modelPlay(play):
 if __name__ == "__main__":
     play = modelPlay("cpu")
     num = 6
-    version = "0.0"
+    version = "0.1"
     for i in range(num):
         play.add_player("cpu")
-        play.player[-1].qnn = torch.load(f"v{version}/model_{play.player[-1].playerNum}.pth")
+        play.player[-1].qnn = qnn(device="cpu").to("cpu")
+        # play.player[-1].qnn = torch.load(f"v{version}/model_{play.player[-1].playerNum}.pth")
+        # play.player[-1].qnn = torch.load(f"v{version}/model_3.pth")
+        play.player[-1].qnn.load_state_dict(torch.load(f"players/maxmodel.pth")[0])
         # play.player[-1].qnn.load_state_dict(torch.load(f"v{version}/model_{play.player[-1].playerNum}.pth"))
     play.oneGame()

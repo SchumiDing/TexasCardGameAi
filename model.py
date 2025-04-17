@@ -160,7 +160,7 @@ class play:
     
     def oneRound(self):
         # one round of poker
-        self.playerMakeDecision()
+        
         self.round += 1
         if self.round == 2:
             # deal the flop
@@ -175,6 +175,7 @@ class play:
             # deal the river
             self.cutCard()
             self.tableCard[4] = self.gain_card()
+        self.playerMakeDecision()
         ifallFold = True
         for player in self.player:
             if player.action[0] != 0:
@@ -324,7 +325,7 @@ class play:
         t = lenHis
         reward = 0
         objv = torch.tensor(objv).float().to(self.device)
-        alpha = (timeStep)/t
+        alpha = (t-timeStep)/t
         reward =  alpha * modelOut + (1-alpha) * objv
         return reward
     
